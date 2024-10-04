@@ -1,0 +1,167 @@
+{
+    "$schema": "https://vega.github.io/schema/vega/v5.json",
+    "background": "transparent",
+    "signals": [
+      {
+        "name": "startTime",
+        "init": "now()"
+      },
+      {
+        "name": "elapsed",
+        "value": 0,
+        "on": [
+          {
+            "events":
+              {
+              "type": "timer",
+              "throttle": 16.3
+            },
+            "update": "overlap ? elapsed : now() - startTime"
+          }
+        ]
+      },
+      {
+        "name": "speed",
+        "value": 25
+      },
+      {
+        "name": "gravityIntensity",
+        "value": 25
+      },
+      {
+        "name": "jumpBoost",
+        "value": -10
+      },
+      {
+        "name": "xpos",
+        "update": "width - (elapsed * speed * 0.01) % width"
+      },
+      {
+        "name": "yposFall",
+        "value": 0,
+        "on": [
+          {
+            "events": "timer",
+            "update": "clamp(yposFall + (keyPressed ? jumpBoost : gravityIntensity * 0.1), 0, height - 75)"
+          }
+        ]
+      },
+      {
+        "name": "xposCenter",
+        "update": "width/2 - 12" // 12px offset for the image size in width/2
+      },
+      {
+        "name": "overlapX_top",
+        "update": "(xposCenter < xpos + 75) && (xposCenter + 75 > xpos)"
+      },
+      {
+        "name": "overlapY_top",
+        "update": "(yposFall < 200) && (yposFall + 75 > 0)"
+      },
+      {
+        "name": "overlap",
+        "update": "overlapX_top && overlapY_top"
+      },
+      {
+        "name": "keyPressed",  
+        // Detect spacebar (32), W (87), or arrow up (38)
+        "value": false,
+        "on": [
+          {
+            "events": "window:keydown",
+            "update": "event.keyCode === 32 || event.keyCode === 87 || event.keyCode === 38 ? true : false"
+          },
+          {
+            "events": "window:keyup",
+            "update": "false"  // Reset when key is released
+          }
+        ]
+      },
+      {
+        "name": "newRectInterval",
+        "value": 1200
+      },
+      {
+        "name": "randomXPos",
+        "update": "1000 + round(random() * 200)"
+      },
+      {
+        "name": "rectCount",
+        "update": "length(data('topContainers'))"
+      },
+      {
+        "name": "size",
+        "update": "floor(elapsed / newRectInterval) > rectCount"
+      }
+    ],
+    "data": [
+      {
+        "name": "dataset"
+      },
+      {
+        "name": "topContainers",
+        "values": [
+          {"xpos": 0},
+          {"xpos": 500}, 
+          {"xpos": 1200}
+        ],
+        "on":[
+          {
+            "trigger": "size",
+             "insert": "{'xpos': randomXPos}"
+          }
+        ]
+      }
+    ],
+    "marks": [
+      {
+        "type": "image",
+        "from": { "data": "dataset" },
+        "encode": {
+          "enter": {
+            "url": {"field": "Bird"},
+            "width": {"value": 75},
+            "height": {"value": 75}
+          },
+          "update": {
+            "x": {"signal": "xposCenter"},
+            "y": {"signal": "yposFall"}
+          }
+        }
+      },
+      {
+        "type": "rect",
+        "from": {"data": "topContainers"},
+        "encode": {
+          "enter": {
+            "y": {"value": 0},
+            "width": {"value": 75},
+            "height": {"value": 200},
+            "fill": {"value": "steelblue"}
+          },
+          "update":{
+            "x": {
+            "signal": "(datum.xpos - (elapsed * speed * 0.01)) % width"
+            }
+          }
+        }
+      },
+      {
+        "type": "rect",
+        "from": {"data": "topContainers"},
+        "encode": {
+          "enter": {
+            "y": {"signal": "height - 200"},
+            "width": {"value": 75},
+            "height": {"value": 200},
+            "fill": {"value": "steelblue"}
+          },
+          "update":{
+            "x": {
+            "signal": "(datum.xpos - (elapsed * speed * 0.01)) % width"
+            }
+          }
+        }
+      }
+    ]
+  }
