@@ -9,7 +9,20 @@
     {
       "name": "gameOver",
       "value": true,
-      "update": "continuePressed ? false : gameOver"
+      "update": "gameOver? (continuePressed ? false : true): (boundaryCollision || pipeCollision)",
+      "on": [
+        {
+          "events": "signal:continuePressed", 
+          "update": "true", 
+          "force": true
+        },
+        {
+          "events": "signal:continuePressed", 
+          "update": "now()", 
+          "force": true, 
+          "assign": "startTime"
+        }
+      ]
     },
     {
       "name": "elapsed",
@@ -38,11 +51,11 @@
     },
     {
       "name": "gravityIntensity",
-      "value": 25
+      "value": 20
     },
     {
       "name": "jumpBoost",
-      "value": -10
+      "value": -2
     },
     {
       "name": "birdSize",
@@ -58,7 +71,7 @@
       "on": [
         {
           "events": "timer",
-          "update": "gameOver ? yposFall : clamp(yposFall + (keyPressed ? jumpBoost : gravityIntensity * 0.1), 0, height - birdSize)"
+          "update": "elapsed < 0.001 ? 200 : continuePressed ? 200 : clamp(yposFall + (keyPressed ? jumpBoost : gravityIntensity * 0.1), 0, height - birdSize)"
         }
       ]
     },
@@ -86,7 +99,7 @@
       "on": [
         {
           "events": "window:keydown",
-          "update": "gameOver ? (event.keyCode === 13 ? true : false) : false"
+          "update": "gameOver && event.keyCode === 13 ? true : false"
         },
         {
           "events": "window:keyup",
@@ -122,15 +135,18 @@
     },
     {
       "name": "pipeCollision",
-      "update": "length(data('obstacles')) > 0 ? data('pipesUp')[0] && ((xposCenter + birdSize > data('pipesUp')[0].xpos && xposCenter < data('pipesUp')[0].xpos + pipeWidth) && ((yposFall < data('pipesUp')[0].gapY) || (yposFall + birdSize > data('pipesUp')[0].gapY + data('pipesUp')[0].gapHeight))) : false"
+      "update": "length(data('collisions')) > 0"
     },
     {
       "name": "collisionDetected",
       "update": "boundaryCollision || pipeCollision",
       "on": [
         {
-          "events": {"signal": "collisionDetected"},
-          "update": "collisionDetected",
+          "events": 
+          {
+            "signal": "collisionDetected"
+          }, 
+          "update": "collisionDetected", 
           "force": true
         }
       ]
@@ -146,7 +162,11 @@
       "on": [
         {
           "trigger": "shouldSpawn",
-          "insert": "({ initialX: width, spawnTime: elapsed, gapHeight: 120 + random() * 80, gapY: 100 + random() * (height - 320), speed: globalSpeed })"
+          "insert": "({ initialX: width, spawnTime: elapsed, gapHeight: 140 + random() * 80, gapY: 100 + random() * (height - 320), speed: globalSpeed })"
+        },
+        {
+          "trigger": "continuePressed",
+          "remove": true
         }
       ],
       "transform": [
@@ -158,6 +178,21 @@
         {
           "type": "filter",
           "expr": "datum.xpos > -pipeWidth"
+        }
+      ]
+    },
+    {
+      "name": "collisions",
+      "source": "obstacles",
+      "transform": [
+        {
+          "type": "formula",
+          "as": "collided",
+          "expr": "(datum.xpos < xposCenter + birdSize && datum.xpos + pipeWidth > xposCenter) & (yposFall < datum.gapY || yposFall + birdSize > datum.gapY + datum.gapHeight)"
+        },
+        {
+          "type": "filter",
+          "expr": "datum.collided"
         }
       ]
     },
@@ -260,8 +295,8 @@
         "update": {
           "x": { "signal": "width/2" },
           "y": { "signal": "height/2 - 50" },
-          "text": { "signal": "gameOver ? 'GAME OVER' : ''" },
-          "opacity": { "signal": "gameOver ? 1 : 0" }
+          "text": { "signal": "gameOver ? (elapsed < 0.001 ? 'FLAPPY START' : 'GAME OVER') : ''" },
+          "opacity": { "signal": "0.7" }
         }
       }
     },
@@ -277,32 +312,14 @@
         "update": {
           "x": { "signal": "width/2" },
           "y": { "signal": "height/2 - 20" },
-          "text": { "signal": "gameOver ? 'Press Enter to restart the game' : 'Press Space, W, or Up Arrow to jump'" },
-          "opacity": { "signal": "gameOver ? 0.7 : 0.3" }
+          "text": { 
+            "signal": "gameOver ? (elapsed < 0.001 ? 'Press Enter to start the game' : 'Press Enter to restart the game') : 'Press Space, W, or Up Arrow to jump'" 
+          },
+          "opacity": { 
+            "signal": "gameOver ? (elapsed < 0.001 ? 0.7 : 0.7) : min(1 - elapsed/10)"
+          }
         }
       }
-    },
-    {
-      "type": "text",
-      "encode": {
-        "enter": {
-          "align": { "value": "left" },
-          "baseline": { "value": "top" },
-          "fontSize": { "value": 12 },
-          "fill": { "value": "blue" }
-        },
-        "update": {
-          "x": { "value": 10 },
-          "y": { "value": 10 },
-          "text": { "signal": "'Pipes: ' + length(obstaclesData) + ' | Bird Y: ' + round(yposFall) + ' | Pipe: ' + pipeCollision + ' | Boundary: ' + boundaryCollision" }
-        }
-      }
-    }
-  ],
-  "on": [
-    {
-      "trigger": "collisionDetected && !gameOver",
-      "update": "gameOver"
     }
   ]
 }
