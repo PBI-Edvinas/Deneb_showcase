@@ -4,7 +4,13 @@
   "signals": [
     {
       "name": "startTime",
-      "init": "now()"
+      "init": "now()",
+      "on":[
+        {
+          "events": "signal:continuePressed",
+          "update": "continuePressed ? now() : startTime"
+        }
+      ]
     },
     {
       "name": "gameOver",
@@ -33,7 +39,7 @@
             "type": "timer",
             "throttle": 16.3
           },
-          "update": "gameOver ? elapsed : (now() - startTime) / 1000"
+          "update": "continuePressed ? 0 : gameOver ? elapsed : (now() - startTime) / 1000"
         }
       ]
     },
@@ -65,6 +71,10 @@
       "name": "pipeWidth",
       "value": 52
     },
+    { 
+      "name": "capSize", 
+      "value": 20 
+    },
     {
       "name": "yposFall",
       "value": 200,
@@ -76,8 +86,27 @@
       ]
     },
     {
+      "name": "yPrev",
+      "value": 20,
+      "on": [
+        { "events": "timer", "update": "yposFall" }
+      ]
+    },
+    {
+      "name": "yVel",
+      "value": 20,
+      "on": [
+        { "events": "timer", "update": "(yposFall - yPrev) * 60" }
+      ]
+    },
+    { "name": "birdAngle", "update": "45" },
+    {
       "name": "xposCenter",
       "update": "width/2 - birdSize/2"
+    },
+    {
+      "name": "pipeColor",
+      "value": "#1bda9d"
     },
     {
       "name": "keyPressed",
@@ -242,12 +271,14 @@
         "enter": {
           "url": {"field": "Bird"},
           "width": {"signal": "birdSize"},
-          "height": {"signal": "birdSize"}
+          "height": {"signal": "birdSize"},
+          "origin": { "signal": "xposCenter + ',' + (yposFall + birdSize/2)" }
         },
         "update": {
           "x": {"signal": "xposCenter"},
           "y": {"signal": "yposFall"},
-          "opacity": {"signal": "gameOver ? 0.5 : 1"}
+          "opacity": {"signal": "gameOver ? 0.5 : 1"},
+          "angle":   { "signal": "birdAngle" }
         }
       }
     },
@@ -258,7 +289,7 @@
         "enter": {
           "width": {"signal": "pipeWidth"},
           "aspect": {"signal": "true"},
-          "url": {"signal": "data('dataset')[0].PipeDown"}
+          "url": {"signal": "data('dataset')[0].PipeSVG"}
         },
         "update": {
           "x": { "field": "xpos" },
@@ -273,7 +304,7 @@
       "encode": {
         "enter": {
           "width": {"signal": "pipeWidth"},
-          "url": {"signal": "data('dataset')[0].PipeUp"}
+          "url": {"signal": "data('dataset')[0].PipeDown"}
         },
         "update": {
           "x": { "field": "xpos" },
