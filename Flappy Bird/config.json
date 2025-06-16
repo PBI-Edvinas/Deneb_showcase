@@ -16,13 +16,21 @@
               "type": "timer",
               "throttle": 16.3
             },
-            "update": "overlap ? elapsed : now() - startTime"
+            "update": "overlap ? elapsed : (now() - startTime) / 1000"
           }
         ]
       },
       {
-        "name": "speed",
-        "value": 25
+      "name": "globalSpeed",
+      "init": "100",
+      "on": [
+          {
+            "events": {
+              "signal": "elapsed"
+            },
+            "update": "100 + elapsed / 25"
+          }
+        ]
       },
       {
         "name": "gravityIntensity",
@@ -31,10 +39,6 @@
       {
         "name": "jumpBoost",
         "value": -10
-      },
-      {
-        "name": "xpos",
-        "update": "width - (elapsed * speed * 0.01) % width"
       },
       {
         "name": "yposFall",
@@ -52,7 +56,8 @@
       },
       {
         "name": "overlapX_top",
-        "update": "(xposCenter < xpos + 75) && (xposCenter + 75 > xpos)"
+        "update": "500"
+        //"update": "(xposCenter < xpos + 75) && (xposCenter + 75 > xpos)"
       },
       {
         "name": "overlapY_top",
@@ -78,41 +83,50 @@
         ]
       },
       {
-        "name": "newRectInterval",
-        "value": 1200
+      "name": "spawnInterval",
+      "update": "2"
       },
       {
-        "name": "randomXPos",
-        "update": "1000 + round(random() * 200)"
+        "name": "lastSpawnTime",
+        "value": 0,
+        "on": [
+          {
+            "events": {"signal": "elapsed"},
+            "update": "shouldSpawn ? elapsed : lastSpawnTime"
+          }
+        ]
       },
       {
-        "name": "rectCount",
-        "update": "length(data('topContainers'))"
-      },
-      {
-        "name": "size",
-        "update": "floor(elapsed / newRectInterval) > rectCount"
+        "name": "shouldSpawn",
+        "update": "(elapsed - lastSpawnTime) >= spawnInterval"
       }
     ],
     "data": [
-      {
-        "name": "dataset"
-      },
-      {
-        "name": "topContainers",
-        "values": [
-          {"xpos": 0},
-          {"xpos": 500}, 
-          {"xpos": 1200}
-        ],
-        "on":[
-          {
-            "trigger": "size",
-             "insert": "{'xpos': randomXPos}"
-          }
-        ]
-      }
-    ],
+    {
+      "name": "dataset"
+    },
+    {
+      "name": "obstacles",
+      "values": [],
+      "on": [
+        {
+          "trigger": "shouldSpawn",
+          "insert": "({ initialX: width, spawnTime: elapsed, gapHeight: 75 + random() * 100, gapY: clamp(random() * (height - 200 + random() * 100 - 600) + 300, 300, height - 200 + random() * 100 - 300), speed: globalSpeed })"
+        }
+      ],
+      "transform": [
+        {
+          "type": "formula",
+          "as": "xpos",
+          "expr": "datum.initialX - ((elapsed - datum.spawnTime) / 1) * datum.speed"
+        },
+        {
+          "type": "filter",
+          "expr": "datum.xpos > -75"
+        }
+      ]
+    }
+  ],
     "marks": [
       {
         "type": "image",
@@ -131,35 +145,31 @@
       },
       {
         "type": "rect",
-        "from": {"data": "topContainers"},
+        "from": { "data": "obstacles" },
         "encode": {
           "enter": {
-            "y": {"value": 0},
-            "width": {"value": 75},
-            "height": {"value": 200},
-            "fill": {"value": "steelblue"}
+            "fill": { "value": "steelblue" }
           },
-          "update":{
-            "x": {
-            "signal": "(datum.xpos - (elapsed * speed * 0.01)) % width"
-            }
+          "update": {
+            "x": { "field": "xpos" },
+            "y": { "field": "0" },
+            "width": { "value": 50 },
+            "height": { "field": "gapHeight" }
           }
         }
       },
       {
         "type": "rect",
-        "from": {"data": "topContainers"},
+        "from": { "data": "obstacles" },
         "encode": {
           "enter": {
-            "y": {"signal": "height - 200"},
-            "width": {"value": 75},
-            "height": {"value": 200},
-            "fill": {"value": "steelblue"}
+            "fill": { "value": "steelblue" }
           },
-          "update":{
-            "x": {
-            "signal": "(datum.xpos - (elapsed * speed * 0.01)) % width"
-            }
+          "update": {
+            "x": { "field": "xpos" },
+            "y": { "signal": "datum.gapY + datum.gapHeight" },
+            "width": { "value": 50 },
+            "height": { "signal": "height - (datum.gapY + datum.gapHeight)" }
           }
         }
       }
