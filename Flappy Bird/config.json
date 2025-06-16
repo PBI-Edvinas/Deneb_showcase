@@ -1,107 +1,127 @@
 {
-    "$schema": "https://vega.github.io/schema/vega/v5.json",
-    "background": "transparent",
-    "signals": [
-      {
-        "name": "startTime",
-        "init": "now()"
-      },
-      {
-        "name": "elapsed",
-        "value": 0,
-        "on": [
-          {
-            "events":
-              {
-              "type": "timer",
-              "throttle": 16.3
-            },
-            "update": "overlap ? elapsed : (now() - startTime) / 1000"
-          }
-        ]
-      },
-      {
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "background": "transparent",
+  "signals": [
+    {
+      "name": "startTime",
+      "init": "now()"
+    },
+    {
+      "name": "gameOver",
+      "value": false
+    },
+    {
+      "name": "elapsed",
+      "value": 0,
+      "on": [
+        {
+          "events": {
+            "type": "timer",
+            "throttle": 16.3
+          },
+          "update": "gameOver ? elapsed : (now() - startTime) / 1000"
+        }
+      ]
+    },
+    {
       "name": "globalSpeed",
       "init": "100",
       "on": [
-          {
-            "events": {
-              "signal": "elapsed"
-            },
-            "update": "100 + elapsed / 25"
-          }
-        ]
-      },
-      {
-        "name": "gravityIntensity",
-        "value": 25
-      },
-      {
-        "name": "jumpBoost",
-        "value": -10
-      },
-      {
-        "name": "yposFall",
-        "value": 0,
-        "on": [
-          {
-            "events": "timer",
-            "update": "clamp(yposFall + (keyPressed ? jumpBoost : gravityIntensity * 0.1), 0, height - 75)"
-          }
-        ]
-      },
-      {
-        "name": "xposCenter",
-        "update": "width/2 - 12" // 12px offset for the image size in width/2
-      },
-      {
-        "name": "overlapX_top",
-        "update": "500"
-        //"update": "(xposCenter < xpos + 75) && (xposCenter + 75 > xpos)"
-      },
-      {
-        "name": "overlapY_top",
-        "update": "(yposFall < 200) && (yposFall + 75 > 0)"
-      },
-      {
-        "name": "overlap",
-        "update": "overlapX_top && overlapY_top"
-      },
-      {
-        "name": "keyPressed",  
-        // Detect spacebar (32), W (87), or arrow up (38)
-        "value": false,
-        "on": [
-          {
-            "events": "window:keydown",
-            "update": "event.keyCode === 32 || event.keyCode === 87 || event.keyCode === 38 ? true : false"
+        {
+          "events": {
+            "signal": "elapsed"
           },
-          {
-            "events": "window:keyup",
-            "update": "false"  // Reset when key is released
-          }
-        ]
-      },
-      {
+          "update": "gameOver ? globalSpeed : 100 + elapsed / 25"
+        }
+      ]
+    },
+    {
+      "name": "gravityIntensity",
+      "value": 25
+    },
+    {
+      "name": "jumpBoost",
+      "value": -10
+    },
+    {
+      "name": "birdSize",
+      "value": 32
+    },
+    {
+      "name": "pipeWidth",
+      "value": 52
+    },
+    {
+      "name": "yposFall",
+      "value": 200,
+      "on": [
+        {
+          "events": "timer",
+          "update": "gameOver ? yposFall : clamp(yposFall + (keyPressed ? jumpBoost : gravityIntensity * 0.1), 0, height - birdSize)"
+        }
+      ]
+    },
+    {
+      "name": "xposCenter",
+      "update": "width/2 - birdSize/2"
+    },
+    {
+      "name": "keyPressed",
+      "value": false,
+      "on": [
+        {
+          "events": "window:keydown",
+          "update": "gameOver ? false : (event.keyCode === 32 || event.keyCode === 87 || event.keyCode === 38 ? true : false)"
+        },
+        {
+          "events": "window:keyup",
+          "update": "false"
+        }
+      ]
+    },
+    {
       "name": "spawnInterval",
       "update": "2"
-      },
-      {
-        "name": "lastSpawnTime",
-        "value": 0,
-        "on": [
-          {
-            "events": {"signal": "elapsed"},
-            "update": "shouldSpawn ? elapsed : lastSpawnTime"
-          }
-        ]
-      },
-      {
-        "name": "shouldSpawn",
-        "update": "(elapsed - lastSpawnTime) >= spawnInterval"
-      }
-    ],
-    "data": [
+    },
+    {
+      "name": "lastSpawnTime",
+      "value": 0,
+      "on": [
+        {
+          "events": {"signal": "elapsed"},
+          "update": "shouldSpawn ? elapsed : lastSpawnTime"
+        }
+      ]
+    },
+    {
+      "name": "shouldSpawn",
+      "update": "(elapsed - lastSpawnTime) >= spawnInterval && !gameOver"
+    },
+    {
+      "name": "obstaclesData",
+      "update": "data('obstacles')"
+    },
+    {
+      "name": "boundaryCollision",
+      "update": "yposFall <= 0 || yposFall >= (height - birdSize)"
+    },
+    {
+      "name": "pipeCollision",
+      "update": "length(obstaclesData) > 0 ? reduce(obstaclesData, false, function(acc, pipe) { return acc || ((xposCenter + birdSize > pipe.xpos && xposCenter < pipe.xpos + pipeWidth) && ((yposFall < pipe.gapY) || (yposFall + birdSize > pipe.gapY + pipe.gapHeight))); }) : false"
+    },
+    {
+      "name": "collisionDetected",
+      "update": "boundaryCollision || pipeCollision",
+      "on": [
+        {
+          "events": {"signal": "collisionDetected"},
+          "update": "collisionDetected",
+          "force": true
+        }
+      ]
+    }
+  ],
+  "data": [
     {
       "name": "dataset"
     },
@@ -111,7 +131,7 @@
       "on": [
         {
           "trigger": "shouldSpawn",
-          "insert": "({ initialX: width, spawnTime: elapsed, gapHeight: 75 + random() * 100, gapY: clamp(random() * (height - 200 + random() * 100 - 600) + 300, 300, height - 200 + random() * 100 - 300), speed: globalSpeed })"
+          "insert": "({ initialX: width, spawnTime: elapsed, gapHeight: 120 + random() * 80, gapY: 100 + random() * (height - 320), speed: globalSpeed })"
         }
       ],
       "transform": [
@@ -122,56 +142,151 @@
         },
         {
           "type": "filter",
-          "expr": "datum.xpos > -75"
+          "expr": "datum.xpos > -pipeWidth"
+        }
+      ]
+    },
+    {
+      "name": "pipesUp",
+      "source": "obstacles",
+      "transform": [
+        {
+          "type": "formula",
+          "as": "pipeType",
+          "expr": "'up'"
+        },
+        {
+          "type": "formula",
+          "as": "pipeHeight",
+          "expr": "datum.gapY"
+        }
+      ]
+    },
+    {
+      "name": "pipesDown", 
+      "source": "obstacles",
+      "transform": [
+        {
+          "type": "formula",
+          "as": "pipeType",
+          "expr": "'down'"
+        },
+        {
+          "type": "formula",
+          "as": "pipeHeight",
+          "expr": "height - (datum.gapY + datum.gapHeight)"
+        },
+        {
+          "type": "formula",
+          "as": "pipeY",
+          "expr": "datum.gapY + datum.gapHeight"
         }
       ]
     }
   ],
-    "marks": [
-      {
-        "type": "image",
-        "from": { "data": "dataset" },
-        "encode": {
-          "enter": {
-            "url": {"field": "Bird"},
-            "width": {"value": 75},
-            "height": {"value": 75}
-          },
-          "update": {
-            "x": {"signal": "xposCenter"},
-            "y": {"signal": "yposFall"}
-          }
-        }
-      },
-      {
-        "type": "rect",
-        "from": { "data": "obstacles" },
-        "encode": {
-          "enter": {
-            "fill": { "value": "steelblue" }
-          },
-          "update": {
-            "x": { "field": "xpos" },
-            "y": { "field": "0" },
-            "width": { "value": 50 },
-            "height": { "field": "gapHeight" }
-          }
-        }
-      },
-      {
-        "type": "rect",
-        "from": { "data": "obstacles" },
-        "encode": {
-          "enter": {
-            "fill": { "value": "steelblue" }
-          },
-          "update": {
-            "x": { "field": "xpos" },
-            "y": { "signal": "datum.gapY + datum.gapHeight" },
-            "width": { "value": 50 },
-            "height": { "signal": "height - (datum.gapY + datum.gapHeight)" }
-          }
+  "marks": [
+    {
+      "type": "image",
+      "from": { "data": "dataset" },
+      "encode": {
+        "enter": {
+          "url": {"field": "Bird"},
+          "width": {"signal": "birdSize"},
+          "height": {"signal": "birdSize"}
+        },
+        "update": {
+          "x": {"signal": "xposCenter"},
+          "y": {"signal": "yposFall"},
+          "opacity": {"signal": "gameOver ? 0.5 : 1"}
         }
       }
-    ]
-  }
+    },
+    {
+      "type": "image",
+      "from": { "data": "pipesUp" },
+      "encode": {
+        "enter": {
+          "width": {"signal": "pipeWidth"},
+          "url": {"signal": "data('dataset')[0].PipeUp"}
+        },
+        "update": {
+          "x": { "field": "xpos" },
+          "y": { "value": 0 },
+          "height": { "field": "pipeHeight" }
+        }
+      }
+    },
+    {
+      "type": "image",
+      "from": { "data": "pipesDown" },
+      "encode": {
+        "enter": {
+          "width": {"signal": "pipeWidth"},
+          "url": {"signal": "data('dataset')[0].PipeDown"}
+        },
+        "update": {
+          "x": { "field": "xpos" },
+          "y": { "field": "pipeY" },
+          "height": { "field": "pipeHeight" }
+        }
+      }
+    },
+    {
+      "type": "text",
+      "encode": {
+        "enter": {
+          "align": { "value": "center" },
+          "baseline": { "value": "middle" },
+          "fontSize": { "value": 24 },
+          "fontWeight": { "value": "bold" },
+          "fill": { "value": "red" }
+        },
+        "update": {
+          "x": { "signal": "width/2" },
+          "y": { "signal": "height/2 - 50" },
+          "text": { "signal": "gameOver ? 'GAME OVER' : ''" },
+          "opacity": { "signal": "gameOver ? 1 : 0" }
+        }
+      }
+    },
+    {
+      "type": "text",
+      "encode": {
+        "enter": {
+          "align": { "value": "center" },
+          "baseline": { "value": "middle" },
+          "fontSize": { "value": 16 },
+          "fill": { "value": "black" }
+        },
+        "update": {
+          "x": { "signal": "width/2" },
+          "y": { "signal": "height/2 - 20" },
+          "text": { "signal": "gameOver ? 'Press Space, W, or Up Arrow to jump' : 'Press Space, W, or Up Arrow to jump'" },
+          "opacity": { "signal": "gameOver ? 0.7 : 0.3" }
+        }
+      }
+    },
+    {
+      "type": "text",
+      "encode": {
+        "enter": {
+          "align": { "value": "left" },
+          "baseline": { "value": "top" },
+          "fontSize": { "value": 12 },
+          "fill": { "value": "blue" }
+        },
+        "update": {
+          "x": { "value": 10 },
+          "y": { "value": 10 },
+          "text": { "signal": "'Pipes: ' + length(obstaclesData) + ' | Bird Y: ' + round(yposFall) + ' | Pipe: ' + pipeCollision + ' | Boundary: ' + boundaryCollision" }
+        }
+      }
+    }
+  ],
+  "on": [
+    {
+      "trigger": "collisionDetected && !gameOver",
+      "update": "gameOver"
+    }
+  ]
+}
