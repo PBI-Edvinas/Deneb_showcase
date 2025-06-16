@@ -159,6 +159,15 @@
       "update": "data('obstacles')"
     },
     {
+        "name": "scoreTrigger",
+        "update": "length(data('obstacles')) > 0 && data('obstacles')[0] && (data('obstacles')[0].xpos + pipeWidth < xposCenter) && !data('obstacles')[0].scored"
+    },
+    {
+        "name": "score",
+        "value": 0,
+        "update": "length(data('obstacles')) > 0 ? data('obstacles')[0].scoreCount : 0"
+    },
+    {
       "name": "boundaryCollision",
       "update": "yposFall <= 0 || yposFall >= (height - birdSize)"
     },
@@ -191,7 +200,7 @@
       "on": [
         {
           "trigger": "shouldSpawn",
-          "insert": "({ initialX: width, spawnTime: elapsed, gapHeight: 140 + random() * 80, gapY: 100 + random() * (height - 320), speed: globalSpeed })"
+          "insert": "({ initialX: width, spawnTime: elapsed, gapHeight: 140 + random() * 80, gapY: 100 + random() * (height - 320), speed: globalSpeed, scored: false })"
         },
         {
           "trigger": "continuePressed",
@@ -205,8 +214,19 @@
           "expr": "datum.initialX - ((elapsed - datum.spawnTime) / 1) * datum.speed"
         },
         {
+          "type": "formula",
+          "as": "scored",
+          "expr": "datum.scored || (datum.xpos + pipeWidth < xposCenter)"
+        },
+        {
+          "type": "joinaggregate",
+          "ops": ["sum"],
+          "fields": ["scored"],
+          "as": ["scoreCount"]
+        },
+        {
           "type": "filter",
-          "expr": "datum.xpos > -pipeWidth"
+          "expr": "datum.xpos > - pipeWidth"
         }
       ]
     },
@@ -283,33 +303,101 @@
       }
     },
     {
-      "type": "image",
-      "from": { "data": "pipesUp" },
-      "encode": {
-        "enter": {
-          "width": {"signal": "pipeWidth"},
-          "aspect": {"signal": "true"},
-          "url": {"signal": "data('dataset')[0].PipeSVG"}
+        "type": "group",
+        "from": {"data": "obstacles"},
+        "encode": {
+          "update": {
+            "x": {"field": "xpos"},
+            "y": {"value": 0},
+            "width": {"signal": "pipeWidth + 20"},
+            "height": {"field": "gapY"}
+          }
         },
-        "update": {
-          "x": { "field": "xpos" },
-          "y": { "value": 0 },
-          "height": { "field": "pipeHeight" }
-        }
-      }
-    },
+        "marks": [
+          {
+            "type": "path",
+            "encode": {
+              "enter": {
+                "path": {
+                  "signal": "'M10,0 L' + (pipeWidth + 10) + ',0 L' + (pipeWidth + 10) + ',' + (parent.gapY - 30) + ' L10,' + (parent.gapY - 30) + ' Z'"
+                },
+                "fill": {"value": "#228B22"},
+                "stroke": {"value": "#006400"},
+                "strokeWidth": {"value": 2}
+              }
+            }
+          },
+          {
+            "type": "path",
+            "encode": {
+              "enter": {
+                "path": {
+                  "signal": "'M0,' + (parent.gapY - 30) + ' L' + (pipeWidth + 20) + ',' + (parent.gapY - 30) + ' L' + (pipeWidth + 20) + ',' + parent.gapY + ' L0,' + parent.gapY + ' Z'"
+                },
+                "fill": {"value": "#32CD32"},
+                "stroke": {"value": "#006400"},
+                "strokeWidth": {"value": 2}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "group",
+        "from": {"data": "obstacles"},
+        "encode": {
+          "update": {
+            "x": {"field": "xpos"},
+            "y": {"signal": "datum.gapY + datum.gapHeight"},
+            "width": {"signal": "pipeWidth + 20"},
+            "height": {"signal": "height - (datum.gapY + datum.gapHeight)"}
+          }
+        },
+        "marks": [
+          {
+            "type": "path",
+            "encode": {
+              "enter": {
+                "path": {
+                  "signal": "'M0,0 L' + (pipeWidth + 20) + ',0 L' + (pipeWidth + 20) + ',30 L0,30 Z'"
+                },
+                "fill": {"value": "#32CD32"},
+                "stroke": {"value": "#006400"},
+                "strokeWidth": {"value": 2}
+              }
+            }
+          },
+          {
+            "type": "path",
+            "encode": {
+              "enter": {
+                "path": {
+                  "signal": "'M10,30 L' + (pipeWidth + 10) + ',30 L' + (pipeWidth + 10) + ',' + (height - parent.gapY - parent.gapHeight) + ' L10,' + (height - parent.gapY - parent.gapHeight) + ' Z'"
+                },
+                "fill": {"value": "#228B22"},
+                "stroke": {"value": "#006400"},
+                "strokeWidth": {"value": 2}
+              }
+            }
+          }
+        ]
+      },
     {
-      "type": "image",
-      "from": { "data": "pipesDown" },
+      "type": "text",
+      "description": "Score",
       "encode": {
         "enter": {
-          "width": {"signal": "pipeWidth"},
-          "url": {"signal": "data('dataset')[0].PipeDown"}
+          "align": { "value": "center" },
+          "baseline": { "value": "middle" },
+          "fontSize": { "value": 24 },
+          "fontWeight": { "value": "bold" },
+          "fill": { "value": "#444444" }
         },
         "update": {
-          "x": { "field": "xpos" },
-          "y": { "field": "pipeY" },
-          "height": { "field": "pipeHeight" }
+          "x": { "signal": "width/2" },
+          "y": { "signal": "25" },
+          "text": { "signal": "'Score : ' + score" },
+          "opacity": { "signal": "0.7" }
         }
       }
     },
