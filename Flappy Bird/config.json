@@ -8,7 +8,8 @@
     },
     {
       "name": "gameOver",
-      "value": false
+      "value": true,
+      "update": "continuePressed ? false : gameOver"
     },
     {
       "name": "elapsed",
@@ -80,6 +81,20 @@
       ]
     },
     {
+      "name": "continuePressed",
+      "value": false,
+      "on": [
+        {
+          "events": "window:keydown",
+          "update": "gameOver ? (event.keyCode === 13 ? true : false) : false"
+        },
+        {
+          "events": "window:keyup",
+          "update": "false"
+        }
+      ]
+    },
+    {
       "name": "spawnInterval",
       "update": "2"
     },
@@ -107,7 +122,7 @@
     },
     {
       "name": "pipeCollision",
-      "update": "length(obstaclesData) > 0 ? reduce(obstaclesData, false, function(acc, pipe) { return acc || ((xposCenter + birdSize > pipe.xpos && xposCenter < pipe.xpos + pipeWidth) && ((yposFall < pipe.gapY) || (yposFall + birdSize > pipe.gapY + pipe.gapHeight))); }) : false"
+      "update": "length(data('obstacles')) > 0 ? data('pipesUp')[0] && ((xposCenter + birdSize > data('pipesUp')[0].xpos && xposCenter < data('pipesUp')[0].xpos + pipeWidth) && ((yposFall < data('pipesUp')[0].gapY) || (yposFall + birdSize > data('pipesUp')[0].gapY + data('pipesUp')[0].gapHeight))) : false"
     },
     {
       "name": "collisionDetected",
@@ -207,7 +222,8 @@
       "encode": {
         "enter": {
           "width": {"signal": "pipeWidth"},
-          "url": {"signal": "data('dataset')[0].PipeUp"}
+          "aspect": {"signal": "true"},
+          "url": {"signal": "data('dataset')[0].PipeDown"}
         },
         "update": {
           "x": { "field": "xpos" },
@@ -222,7 +238,7 @@
       "encode": {
         "enter": {
           "width": {"signal": "pipeWidth"},
-          "url": {"signal": "data('dataset')[0].PipeDown"}
+          "url": {"signal": "data('dataset')[0].PipeUp"}
         },
         "update": {
           "x": { "field": "xpos" },
@@ -261,7 +277,7 @@
         "update": {
           "x": { "signal": "width/2" },
           "y": { "signal": "height/2 - 20" },
-          "text": { "signal": "gameOver ? 'Press Space, W, or Up Arrow to jump' : 'Press Space, W, or Up Arrow to jump'" },
+          "text": { "signal": "gameOver ? 'Press Enter to restart the game' : 'Press Space, W, or Up Arrow to jump'" },
           "opacity": { "signal": "gameOver ? 0.7 : 0.3" }
         }
       }
