@@ -15,7 +15,7 @@
     },
     {
       "name": "cardWidth",
-      "update": "(width - (edgePadding * 2) - (cardPadding * (numColumns - 1))) / numColumns"
+      "update": "(width - (edgePadding) - (cardPadding * (numColumns - 1))) / numColumns"
     },
     {
       "name": "cardHeight",
@@ -31,7 +31,7 @@
     },
     {
       "name": "edgePadding",
-      "value": 0
+      "value": 10
     },
     {
       "name": "cardPadding",
@@ -82,7 +82,25 @@
       "value": null,
       "on": [
         {"events": "@project_card:mouseover", "update": "group().datum"},
-        {"events": "@project_card:mouseout", "update": "null"}
+        {"events": "@project_card_title:mouseover", "update": "group().datum"},
+        {"events": "@project_card_score:mouseover", "update": "group().datum"},
+        {"events": "@project_card_history_background:mouseover", "update": "group().datum"},
+        {"events": "@project_card_history_bars:mouseover", "update": "group().datum"},
+        {"events": "mouseout", "update": "null", "throttle": 100}
+      ]
+    },
+    {
+      "name": "hoveredCategory",
+      "value": null,
+      "on": [
+        {
+          "events": "@project_card:mouseover, @project_card_title:mouseover, @project_card_score:mouseover, @project_card_history_background:mouseover, @project_card_history_bars:mouseover",
+          "update": "group().datum"
+        },
+        {
+          "events": "mouseout",
+          "update": "null"
+        }
       ]
     }
   ],
@@ -210,7 +228,7 @@
       "type": "group",
       "encode": {
         "enter": {
-          "x": {"signal": "0"},
+          "x": {"signal": "edgePadding"},
           "y": {"signal": "20"},
           "width": {"signal": "width"},
           "height": {"signal": "80"}
@@ -224,7 +242,7 @@
             "enter": {
               "x": {"signal": "0"},
               "y": {"signal": "4"},
-              "width": {"signal": "width"},
+              "width": {"signal": "width - edgePadding"},
               "height": {"signal": "80"},
               "fill": {"signal": "'#003E52'"},
               "opacity": {"value": 0.08},
@@ -239,7 +257,7 @@
             "enter": {
               "x": {"signal": "0"},
               "y": {"signal": "0"},
-              "width": {"signal": "width"},
+              "width": {"signal": "width  - edgePadding"},
               "height": {"signal": "80"},
               "fill": {"value": "#FFFFFF"},
               "opacity": {"value": 0.95},
@@ -382,7 +400,9 @@
         },
         "update": {
           "cursor": {"value": "pointer"},
-          "y": {"signal": "hoveredCard && datum.Category == hoveredCard.Category ? datum.y - 5 : datum.y"}
+          "y": {
+        "signal": "hoveredCard && datum.Category == hoveredCard.Category ? datum.y - 5 : datum.y"
+      }
         }
       },
       "data": [
@@ -434,9 +454,13 @@
               "cornerRadius": {"signal": "cornerRadius"}
             },
             "update": {
-              "fill": {"value": "#003E52"},
-              "opacity": {"signal": "parent == hoveredCard ? 0.12 : 0.06"}
-            }
+      "x": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? -2 : 0"},
+      "y": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? 4 : 2"},
+      "width": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? cardWidth + 4 : cardWidth"},
+      "height": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? cardHeight + 4 : cardHeight"},
+      "fill": {"value": "#003E52"},
+      "opacity": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? 0.12 : 0.06"}
+    }
           }
         },
         {
@@ -453,11 +477,15 @@
               "strokeWidth": {"value": 1},
               "cornerRadius": {"signal": "cornerRadius"}
             },
-            "update": {
-              "stroke": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? 'rgba(51, 140, 156, 0.3)' : 'rgba(51, 140, 156, 0.15)'"},
-              "strokeOpacity": {"value": 1},
-              "cursor": {"value": "pointer"}
-            }
+             "update": {
+      "x": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? -2 : 0"},
+      "y": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? -2 : 0"},
+      "width": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? cardWidth + 4 : cardWidth"},
+      "height": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? cardHeight + 4 : cardHeight"},
+      "stroke": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? 'rgba(51, 140, 156, 0.3)' : 'rgba(51, 140, 156, 0.15)'"},
+      "strokeOpacity": {"value": 1},
+      "cursor": {"value": "pointer"}
+    }
           }
         },
         {
@@ -539,11 +567,10 @@
               "cornerRadius": {"value": 3}
             },
             "update": {
-              "fill": {"value": "rgba(51, 140, 156, 0.6)"},
+              "fill": {
+                "signal": "hoveredBar && hoveredBar.Category === datum.Category && hoveredBar.Month === datum.Month ? 'rgba(51, 140, 156, 0.9)' : 'rgba(51, 140, 156, 0.6)'"
+              },
               "cursor": {"value": "pointer"}
-            },
-            "hover": {
-              "fill": {"value": "rgba(51, 140, 156, 0.9)"}
             }
           }
         }
