@@ -18,12 +18,20 @@
       "update": "(width - (edgePadding) - (cardPadding * (numColumns - 1))) / numColumns"
     },
     {
+      "name": "cardPorfWidth",
+      "update": "(width - (edgePadding) - (cardPadding * (numPorfColumns - 1))) / numPorfColumns"
+    },
+    {
       "name": "cardHeight",
       "value": 200
     },
     {
       "name": "numColumns",
       "value": 4
+    },
+    {
+      "name": "numPorfColumns",
+      "value": 3
     },
     {
       "name": "startY",
@@ -217,6 +225,26 @@
         {
           "type": "filter",
           "expr": "datum.CategoryType === 'Porfolio'"
+        },
+        {
+          "type": "formula",
+          "as": "columnIndex",
+          "expr": "(datum.__row__ -9) % 3"
+        },
+        {
+          "type": "formula",
+          "as": "rowIndex",
+          "expr": "floor((datum.__row__ -9) / 3)"
+        },
+        {
+          "type": "formula",
+          "as": "x",
+          "expr": "edgePadding + (datum.columnIndex * (cardPorfWidth + cardPadding))"
+        },
+        {
+          "type": "formula",
+          "as": "y",
+          "expr": "projectCardsHeight + 50 + (datum.rowIndex * (cardPorfWidth + paddingY))"
         }
       ]
     }
@@ -646,6 +674,197 @@
               "height": {"signal": "4"},
               "fill": {"signal": "'rgba(51, 140, 156, 0.2)'"},
               "cornerRadius": {"signal": "cornerRadius"}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "porfolio_metric_card",
+      "description": "separator for project section",
+      "type": "group",
+      "from": {"data": "portfolio"},
+      "interactive": true,
+      "encode": {
+        "enter": {
+          "x": {"field": "x"},
+          "y": {"field": "y"},
+          "width": {"signal": "cardPorfWidth"},
+          "height": {"signal": "cardHeight"}
+        },
+        "update": {
+          "cursor": {"value": "pointer"},
+          "y": {
+        "signal": "hoveredCard && datum.Category == hoveredCard.Category ? datum.y - 5 : datum.y"
+      }
+        }
+      },
+      "data": [
+        {
+          "name": "filtered_history",
+          "source": "project_history",
+          "transform": [
+            {
+              "type": "filter",
+              "expr": "datum.Category == parent.Category"
+            }
+          ]
+        }
+      ],
+      "scales": [
+        {
+          "name": "xScale",
+          "type": "band",
+          "domain": {
+            "data": "filtered_history", 
+            "field": "Month", 
+            "sort": {
+              "field": "Month"
+              }
+            },
+          "range": [20, {"signal": "cardPorfWidth - 20"}],
+          "paddingInner": 0.3,
+          "paddingOuter": 0.1
+        },
+        {
+          "name": "yScale",
+          "type": "linear",
+          "domain": [0, 1],
+          "range": [167, 120],
+          "nice": true,
+          "zero": true
+        }
+      ],
+      "marks": [
+        {
+          "name": "project_card_shadow",
+          "type": "rect",
+          "encode": {
+            "enter": {
+              "x": {"value": 0},
+              "y": {"value": 2},
+              "height": {"signal": "cardHeight"},
+              "width": {"signal": "cardPorfWidth"},
+              "cornerRadius": {"signal": "cornerRadius"}
+            },
+            "update": {
+      "x": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? -2 : 0"},
+      "y": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? 4 : 2"},
+      "width": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? cardPorfWidth + 4 : cardPorfWidth"},
+      "height": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? cardHeight + 4 : cardHeight"},
+      "fill": {"value": "#003E52"},
+      "opacity": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? 0.12 : 0.06"}
+    }
+          }
+        },
+        {
+          "name": "project_card",
+          "type": "rect",
+          "encode": {
+            "enter": {
+              "_category": {"field": {"parent": "Category"}},
+              "height": {"signal": "cardHeight"},
+              "width": {"signal": "cardPorfWidth"},
+              "fill": {"value": "#FFFFFF"},
+              "stroke": {"value": "#338C9C"},
+              "strokeOpacity": {"value": 0.15},
+              "strokeWidth": {"value": 1},
+              "cornerRadius": {"signal": "cornerRadius"}
+            },
+             "update": {
+      "x": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? -2 : 0"},
+      "y": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? -2 : 0"},
+      "width": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? cardPorfWidth + 4 : cardPorfWidth"},
+      "height": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? cardHeight + 4 : cardHeight"},
+      "stroke": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? 'rgba(51, 140, 156, 0.3)' : 'rgba(51, 140, 156, 0.15)'"},
+      "strokeOpacity": {"value": 1},
+      "cursor": {"value": "pointer"}
+    }
+          }
+        },
+        {
+          "name": "project_card_title",
+          "type": "text",
+          "encode": {
+            "enter": {
+              "text": {"signal": "parent.Category"},
+              "x": {"signal": "20"},
+              "y": {"signal": "20"},
+              "height": {"signal": "40"},
+              "fill": {"signal": "'#003E52'"},
+              "opacity": {"signal": "0.7"},
+              "align": {"value":  "left"},
+              "baseline": {"value": "middle"},
+              "fontStyle": {"signal": "font"},
+              "fontSize": {"signal": "12"},
+              "fontWeight": {"signal": "700"},
+              "letterSpacing": {"value": 10}
+            }
+          }
+        },
+        {
+          "name": "project_card_score",
+          "type": "text",
+          "encode": {
+            "enter": {
+              "text": {"signal": "format(parent.Health, '.0%')"},
+              "x": {"signal": "20"},
+              "y": {"signal": "70"},
+              "height": {"signal": "40"},
+              "fill": {"signal": "'#003E52'"},
+              "align": {"value":  "left"},
+              "baseline": {"value": "middle"},
+              "fontStyle": {"signal": "font"},
+              "fontSize": {"signal": "42"},
+              "fontWeight": {"signal": "700"},
+              "letterSpacing": {"value": 10}
+            }
+          }
+        },
+        {
+          "name": "project_card_history_background",
+          "type": "rect",
+          "encode": {
+            "enter": {
+              "x": {"value": 20},
+              "y": {"value": 110},
+              "width": {"signal": "cardPorfWidth - 40"},
+              "height": {"signal": "60"},
+              "cornerRadius": {"signal": "8"},
+              "fill": {
+                "value": {
+                  "x1": 1,
+                  "y1": 1,
+                  "gradient": "linear",
+                  "stops": [
+                    {"offset": 0, "color": "rgba(51, 140, 156, 0.05)"},
+                    {"offset": 0.5, "color": "rgba(51, 140, 156, 0.1)"},
+                    {"offset": 1, "color": "rgba(51, 140, 156, 0.05)"}
+                  ]
+                }
+              },
+              "opacity": {"signal": "1"}
+            }
+          }
+        },
+        {
+          "name": "project_card_history_bars",
+          "type": "rect",
+          "from": {"data": "filtered_history"},
+          "encode": {
+            "enter": {
+              "x": {"scale": "xScale", "field": "Month"},
+              "width": {"scale": "xScale", "band": 1},
+              "y": {"scale": "yScale", "field": "Score"},
+              "y2": {"scale": "yScale", "value": 0},
+              "fill": {"value": "rgba(51, 140, 156, 0.6)"},
+              "cornerRadius": {"value": 3}
+            },
+            "update": {
+              "fill": {
+                "signal": "hoveredBar && hoveredBar.Category === datum.Category && hoveredBar.Month === datum.Month ? 'rgba(51, 140, 156, 0.9)' : 'rgba(51, 140, 156, 0.6)'"
+              },
+              "cursor": {"value": "pointer"}
             }
           }
         }
