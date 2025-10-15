@@ -1,0 +1,628 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "signals": [
+    {
+      "name": "font",
+      "value": "Segoe UI"
+    },
+    {
+      "name": "font_semi",
+      "value": "Segoe UI Semibold"
+    },
+    {
+      "name": "fontWeight",
+      "value": 700
+    },
+    {
+      "name": "cardWidth",
+      "update": "(width - (edgePadding * 2) - (cardPadding * (numColumns - 1))) / numColumns"
+    },
+    {
+      "name": "cardHeight",
+      "value": 200
+    },
+    {
+      "name": "numColumns",
+      "value": 4
+    },
+    {
+      "name": "startY",
+      "value": 160
+    },
+    {
+      "name": "edgePadding",
+      "value": 0
+    },
+    {
+      "name": "cardPadding",
+      "value": 20
+    },
+    {
+      "name": "paddingY",
+      "value": 20
+    },
+    {
+      "name": "gap",
+      "value": 10
+    },
+    {
+      "name": "projectCardsHeight",
+      "update": "data('project')[7].y + cardHeight + 10"
+    },
+    {
+      "name": "thirdWidth",
+      "update": "width/3"
+    },
+    {
+      "name": "thirdWidthWithGap",
+      "update": "(width/3 - 20)"
+    },
+    {
+      "name": "cornerRadius",
+      "value": 25
+    },
+    {
+      "name": "projectSepTitle",
+      "value": "Project level metrics"
+    },
+    {
+      "name": "porfolioSepTitle",
+      "value": "Porfolio level metrics"
+    },
+    {
+      "name": "hoveredBar",
+      "value": null,
+      "on": [
+        {"events": "@project_card_history_bars:mouseover", "update": "datum"},
+        {"events": "@project_card_history_bars:mouseout", "update": "null"}
+      ]
+    },
+    {
+      "name": "hoveredCard",
+      "value": null,
+      "on": [
+        {"events": "@project_card:mouseover", "update": "group().datum"},
+        {"events": "@project_card:mouseout", "update": "null"}
+      ]
+    }
+  ],
+  "data": [
+    {
+      "name": "dataset",
+      "transform": [
+        {
+          "type": "formula",
+          "expr": "upper(datum.Category)",
+          "as": "Category"
+        }
+      ]
+    },
+    {
+      "name": "overall",
+      "source": "dataset",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum.Category === 'TOTAL'"
+        }
+      ]
+    },
+    {
+      "name": "project",
+      "source": "dataset",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum.CategoryType === 'Project' && datum.Category != 'TOTAL'"
+        },
+        {
+          "type": "formula",
+          "as": "columnIndex",
+          "expr": "(datum.__row__ - 1) % numColumns"
+        },
+        {
+          "type": "formula",
+          "as": "rowIndex",
+          "expr": "floor((datum.__row__ - 1) / numColumns)"
+        },
+        {
+          "type": "formula",
+          "as": "x",
+          "expr": "edgePadding + (datum.columnIndex * (cardWidth + cardPadding))"
+        },
+        {
+          "type": "formula",
+          "as": "y",
+          "expr": "startY + (datum.rowIndex * (cardHeight + paddingY))"
+        }
+      ]
+    },
+    {
+      "name": "project_history",
+      "source": "project",
+      "transform": [
+        {
+          "type": "formula",
+          "as": "MoM1",
+          "expr": "split(datum.HealthHistory, ',')[0]"
+        },
+        {
+          "type": "formula",
+          "as": "MoM2",
+          "expr": "split(datum.HealthHistory, ',')[1]"
+        },
+        {
+          "type": "formula",
+          "as": "MoM3",
+          "expr": "split(datum.HealthHistory, ',')[2]"
+        },
+        {
+          "type": "formula",
+          "as": "MoM4",
+          "expr": "split(datum.HealthHistory, ',')[3]"
+        },
+        {
+          "type": "formula",
+          "as": "MoM5",
+          "expr": "split(datum.HealthHistory, ',')[4]"
+        },
+        {
+          "type": "formula",
+          "as": "MoM6",
+          "expr": "split(datum.HealthHistory, ',')[5]"
+        },
+        {
+          "type": "fold",
+          "fields": ["MoM1", "MoM2", "MoM3", "MoM4", "MoM5", "MoM6"],
+          "as": ["Month", "Score"]
+        },
+        {
+          "type": "formula",
+          "as": "Month",
+          "expr": "toNumber(substring(datum.Month, 3, 4))"
+        },
+        {
+          "type": "formula",
+          "as": "ScorePercentage",
+          "expr": "format(datum.Score, '.0%')"
+        },
+        {
+          "type": "project",
+          "fields": ["Category", "Month", "Score", "ScorePercentage"]
+        }
+      ]
+    },
+    {
+      "name": "portfolio",
+      "source": "dataset",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum.CategoryType === 'Porfolio'"
+        }
+      ]
+    }
+  ],
+  "marks": [
+    {
+      "name": "overall_group",
+      "description": "separator for project section",
+      "type": "group",
+      "encode": {
+        "enter": {
+          "x": {"signal": "0"},
+          "y": {"signal": "20"},
+          "width": {"signal": "width"},
+          "height": {"signal": "80"}
+        }
+      },
+      "marks": [
+        {
+          "name": "overall_card_shadow",
+          "type": "rect",
+          "encode": {
+            "enter": {
+              "x": {"signal": "0"},
+              "y": {"signal": "4"},
+              "width": {"signal": "width"},
+              "height": {"signal": "80"},
+              "fill": {"signal": "'#003E52'"},
+              "opacity": {"value": 0.08},
+              "cornerRadius": {"signal": "cornerRadius"}
+            }
+          }
+        },
+        {
+          "name": "overall_card",
+          "type": "rect",
+          "encode": {
+            "enter": {
+              "x": {"signal": "0"},
+              "y": {"signal": "0"},
+              "width": {"signal": "width"},
+              "height": {"signal": "80"},
+              "fill": {"value": "#FFFFFF"},
+              "opacity": {"value": 0.95},
+              "stroke": {"value": "#338C9C"},
+              "strokeOpacity": {"value": 0.2},
+              "cornerRadius": {"signal": "cornerRadius"}
+            }
+          }
+        },
+        {
+          "name": "overall_card_score",
+          "from": {"data": "overall"},
+          "type": "text",
+          "encode": {
+            "enter": {
+              "text": {"signal": "format(datum.Health, '.0%')"},
+              "x": {"signal": "20"},
+              "y": {"signal": "45"},
+              "height": {"signal": "40"},
+              "fill": {"signal": "'rgba(0, 62, 82, 1)'"},
+              "align": {"value":  "left"},
+              "baseline": {"value": "middle"},
+              "fontStyle": {"signal": "font"},
+              "fontSize": {"signal": "48"},
+              "fontWeight": {"signal": "700"},
+              "letterSpacing": {"value": 200}
+            }
+          }
+        },
+        {
+          "name": "overall_card_title",
+          "from": {"data": "overall"},
+          "type": "text",
+          "encode": {
+            "enter": {
+              "text": {"signal": "'Total score'"},
+              "x": {"signal": "130"},
+              "y": {"signal": "55"},
+              "height": {"signal": "40"},
+              "fill": {"signal": "'#003E52'"},
+              "opacity": {"signal": "0.7"},
+              "align": {"value":  "left"},
+              "baseline": {"value": "middle"},
+              "fontStyle": {"signal": "font"},
+              "fontSize": {"signal": "14"},
+              "fontWeight": {"signal": "700"},
+              "letterSpacing": {"value": 200}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "project_separator",
+      "description": "separator for project section",
+      "type": "group",
+      "encode": {
+        "enter": {
+          "x": {"signal": "0"},
+          "y": {"signal": "110"},
+          "width": {"signal": "width"},
+          "height": {"signal": "40"}
+        }
+      },
+      "marks": [
+        {
+          "name": "project_separator_line_left",
+          "type": "rect",
+          "encode": {
+            "enter": {
+              "x": {"value": 10},
+              "y": {"signal": "((40-4)/2)"},
+              "width": {"signal": "thirdWidthWithGap"},
+              "height": {"signal": "4"},
+              "fill": {"signal": "'rgba(51, 140, 156, 0.2)'"},
+              "cornerRadius": {"signal": "cornerRadius"}
+            }
+          }
+        },
+        {
+          "name": "project_separator_center",
+          "type": "rect",
+          "encode": {
+            "enter": {
+              "x": {"signal": "thirdWidthWithGap + 30"},
+              "y": {"signal": "((40-22)/2)"},
+              "width": {"signal": "thirdWidthWithGap"},
+              "height": {"signal": "22"},
+              "fill": {"signal": "'rgba(51, 140, 156, 0.08)'"},
+              "stroke": {"signal": "'rgba(51, 140, 156, 0.2)'"},
+              "cornerRadius": {"signal": "cornerRadius"}
+            }
+          }
+        },
+        {
+          "name": "project_separator_center_text",
+          "type": "text",
+          "encode": {
+            "enter": {
+              "text": {"signal": "projectSepTitle"},
+              "x": {"signal": "thirdWidthWithGap + 30 + thirdWidthWithGap/2"},
+              "y": {"signal": "25"},
+              "height": {"signal": "20"},
+              "fill": {"signal": "'rgba(0, 62, 82, 1)'"},
+              "cornerRadius": {"signal": "cornerRadius"},
+              "align": {"value":  "center"},
+              "fontStyle": {"signal": "font_semi"},
+              "fontSize": {"signal": "16"}
+            }
+          }
+        },
+        {
+          "name": "project_separator_line_right",
+          "type": "rect",
+          "encode": {
+            "enter": {
+              "x": {"signal": "width - thirdWidthWithGap - 10"},
+              "y": {"signal": "((40-4)/2)"},
+              "width": {"signal": "thirdWidthWithGap"},
+              "height": {"signal": "4"},
+              "fill": {"signal": "'rgba(51, 140, 156, 0.2)'"},
+              "cornerRadius": {"signal": "cornerRadius"}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "project_metric_card",
+      "description": "separator for project section",
+      "type": "group",
+      "from": {"data": "project"},
+      "interactive": true,
+      "encode": {
+        "enter": {
+          "x": {"field": "x"},
+          "y": {"field": "y"},
+          "width": {"signal": "cardWidth"},
+          "height": {"signal": "cardHeight"}
+        },
+        "update": {
+          "cursor": {"value": "pointer"},
+          "y": {"signal": "hoveredCard && datum.Category == hoveredCard.Category ? datum.y - 5 : datum.y"}
+        }
+      },
+      "data": [
+        {
+          "name": "filtered_history",
+          "source": "project_history",
+          "transform": [
+            {
+              "type": "filter",
+              "expr": "datum.Category == parent.Category"
+            }
+          ]
+        }
+      ],
+      "scales": [
+        {
+          "name": "xScale",
+          "type": "band",
+          "domain": {
+            "data": "filtered_history", 
+            "field": "Month", 
+            "sort": {
+              "field": "Month"
+              }
+            },
+          "range": [20, {"signal": "cardWidth - 20"}],
+          "paddingInner": 0.3,
+          "paddingOuter": 0.1
+        },
+        {
+          "name": "yScale",
+          "type": "linear",
+          "domain": [0, 1],
+          "range": [167, 120],
+          "nice": true,
+          "zero": true
+        }
+      ],
+      "marks": [
+        {
+          "name": "project_card_shadow",
+          "type": "rect",
+          "encode": {
+            "enter": {
+              "x": {"value": 0},
+              "y": {"value": 2},
+              "height": {"signal": "cardHeight"},
+              "width": {"signal": "cardWidth"},
+              "cornerRadius": {"signal": "cornerRadius"}
+            },
+            "update": {
+              "fill": {"value": "#003E52"},
+              "opacity": {"signal": "parent == hoveredCard ? 0.12 : 0.06"}
+            }
+          }
+        },
+        {
+          "name": "project_card",
+          "type": "rect",
+          "encode": {
+            "enter": {
+              "_category": {"field": {"parent": "Category"}},
+              "height": {"signal": "cardHeight"},
+              "width": {"signal": "cardWidth"},
+              "fill": {"value": "#FFFFFF"},
+              "stroke": {"value": "#338C9C"},
+              "strokeOpacity": {"value": 0.15},
+              "strokeWidth": {"value": 1},
+              "cornerRadius": {"signal": "cornerRadius"}
+            },
+            "update": {
+              "stroke": {"signal": "hoveredCard && parent.Category == hoveredCard.Category ? 'rgba(51, 140, 156, 0.3)' : 'rgba(51, 140, 156, 0.15)'"},
+              "strokeOpacity": {"value": 1},
+              "cursor": {"value": "pointer"}
+            }
+          }
+        },
+        {
+          "name": "project_card_title",
+          "type": "text",
+          "encode": {
+            "enter": {
+              "text": {"signal": "parent.Category"},
+              "x": {"signal": "20"},
+              "y": {"signal": "20"},
+              "height": {"signal": "40"},
+              "fill": {"signal": "'#003E52'"},
+              "opacity": {"signal": "0.7"},
+              "align": {"value":  "left"},
+              "baseline": {"value": "middle"},
+              "fontStyle": {"signal": "font"},
+              "fontSize": {"signal": "12"},
+              "fontWeight": {"signal": "700"},
+              "letterSpacing": {"value": 10}
+            }
+          }
+        },
+        {
+          "name": "project_card_score",
+          "type": "text",
+          "encode": {
+            "enter": {
+              "text": {"signal": "format(parent.Health, '.0%')"},
+              "x": {"signal": "20"},
+              "y": {"signal": "70"},
+              "height": {"signal": "40"},
+              "fill": {"signal": "'#003E52'"},
+              "align": {"value":  "left"},
+              "baseline": {"value": "middle"},
+              "fontStyle": {"signal": "font"},
+              "fontSize": {"signal": "42"},
+              "fontWeight": {"signal": "700"},
+              "letterSpacing": {"value": 10}
+            }
+          }
+        },
+        {
+          "name": "project_card_history_background",
+          "type": "rect",
+          "encode": {
+            "enter": {
+              "x": {"value": 20},
+              "y": {"value": 110},
+              "width": {"signal": "cardWidth - 40"},
+              "height": {"signal": "60"},
+              "cornerRadius": {"signal": "8"},
+              "fill": {
+                "value": {
+                  "x1": 1,
+                  "y1": 1,
+                  "gradient": "linear",
+                  "stops": [
+                    {"offset": 0, "color": "rgba(51, 140, 156, 0.05)"},
+                    {"offset": 0.5, "color": "rgba(51, 140, 156, 0.1)"},
+                    {"offset": 1, "color": "rgba(51, 140, 156, 0.05)"}
+                  ]
+                }
+              },
+              "opacity": {"signal": "1"}
+            }
+          }
+        },
+        {
+          "name": "project_card_history_bars",
+          "type": "rect",
+          "from": {"data": "filtered_history"},
+          "encode": {
+            "enter": {
+              "x": {"scale": "xScale", "field": "Month"},
+              "width": {"scale": "xScale", "band": 1},
+              "y": {"scale": "yScale", "field": "Score"},
+              "y2": {"scale": "yScale", "value": 0},
+              "fill": {"value": "rgba(51, 140, 156, 0.6)"},
+              "cornerRadius": {"value": 3}
+            },
+            "update": {
+              "fill": {"value": "rgba(51, 140, 156, 0.6)"},
+              "cursor": {"value": "pointer"}
+            },
+            "hover": {
+              "fill": {"value": "rgba(51, 140, 156, 0.9)"}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "porfolio_separator",
+      "description": "separator for porfolio section",
+      "type": "group",
+      "encode": {
+        "enter": {
+          "x": {"signal": "0"},
+          "y": {"signal": "projectCardsHeight"},
+          "width": {"signal": "width"},
+          "height": {"signal": "40"}
+        }
+      },
+      "marks": [
+        {
+          "name": "porfolio_separator_line_left",
+          "type": "rect",
+          "encode": {
+            "enter": {
+              "x": {"value": 10},
+              "y": {"signal": "((40-4)/2)"},
+              "width": {"signal": "thirdWidthWithGap"},
+              "height": {"signal": "4"},
+              "fill": {"signal": "'rgba(51, 140, 156, 0.2)'"},
+              "cornerRadius": {"signal": "cornerRadius"}
+            }
+          }
+        },
+        {
+          "name": "porfolio_separator_center",
+          "type": "rect",
+          "encode": {
+            "enter": {
+              "x": {"signal": "thirdWidthWithGap + 30"},
+              "y": {"signal": "((40-22)/2)"},
+              "width": {"signal": "thirdWidthWithGap"},
+              "height": {"signal": "22"},
+              "fill": {"signal": "'rgba(51, 140, 156, 0.08)'"},
+              "stroke": {"signal": "'rgba(51, 140, 156, 0.2)'"},
+              "cornerRadius": {"signal": "cornerRadius"}
+            }
+          }
+        },
+        {
+          "name": "porfolio_separator_center_text",
+          "type": "text",
+          "encode": {
+            "enter": {
+              "text": {"signal": "porfolioSepTitle"},
+              "x": {"signal": "thirdWidthWithGap + 30 + thirdWidthWithGap/2"},
+              "y": {"signal": "25"},
+              "height": {"signal": "20"},
+              "fill": {"signal": "'rgba(0, 62, 82, 1)'"},
+              "cornerRadius": {"signal": "cornerRadius"},
+              "align": {"value":  "center"},
+              "fontStyle": {"signal": "font_semi"},
+              "fontSize": {"signal": "16"}
+            }
+          }
+        },
+        {
+          "name": "porfolio_separator_line_right",
+          "type": "rect",
+          "encode": {
+            "enter": {
+              "x": {"signal": "width - thirdWidthWithGap - 10"},
+              "y": {"signal": "((40-4)/2)"},
+              "width": {"signal": "thirdWidthWithGap"},
+              "height": {"signal": "4"},
+              "fill": {"signal": "'rgba(51, 140, 156, 0.2)'"},
+              "cornerRadius": {"signal": "cornerRadius"}
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
